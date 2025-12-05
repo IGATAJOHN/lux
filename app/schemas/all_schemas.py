@@ -170,7 +170,7 @@ class StaffBase(BaseModel):
     status: str = "active"
 
 class StaffCreate(StaffBase):
-    pass
+    password: Optional[str] = None # For creating a linked user account
 
 class StaffResponse(StaffBase):
     id: int

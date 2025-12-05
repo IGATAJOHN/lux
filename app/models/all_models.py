@@ -97,6 +97,7 @@ class Staff(Base):
     __tablename__ = "staff"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Link to auth user
     name = Column(String)
     email = Column(String, unique=True, nullable=True)
     phone = Column(String, nullable=True)
@@ -123,3 +124,16 @@ class AnomalyLog(Base):
     severity = Column(String, default="medium") # low, medium, high
     related_entity = Column(String, nullable=True) # e.g. "Booking #123"
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    recipient_staff_id = Column(Integer, ForeignKey("staff.id"), nullable=True)
+    recipient_user_id = Column(Integer, ForeignKey("users.id"), nullable=True) # For guest notifications
+    message = Column(String)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    staff = relationship("Staff", backref="notifications")
+    user = relationship("User", backref="notifications")

@@ -58,6 +58,15 @@ def assign_staff_to_request(request_id: int, db: Session):
         
         db.commit()
         db.refresh(request)
+        
+        # Send Notification
+        from app.services.notification_service import create_notification
+        create_notification(
+            db, 
+            message=f"New Task Assigned: {request.type} - {request.description}", 
+            staff_id=candidate.id
+        )
+        
         print(f"✅ Assigned {candidate.name} to request #{request.id}")
         return candidate
     else:

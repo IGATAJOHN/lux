@@ -26,6 +26,10 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+@app.get("/api_status")
+def api_status():
+    return {"status": "active", "version": "new_code_loaded"}
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
