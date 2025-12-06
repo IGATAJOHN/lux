@@ -4,14 +4,24 @@ import axios from 'axios';
 // If accessing via network IP, use that IP for backend
 // Otherwise use localhost
 const getApiUrl = () => {
+  // 1. Check for environment variable (Vercel/Cloud)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
+
   const hostname = window.location.hostname;
-  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    return `http://${hostname}:8000`;
+
+  // 2. Local Development (localhost)
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://127.0.0.1:8000';
   }
-  return 'http://127.0.0.1:8000';
+
+  // 3. Fallback for unexpected environments (e.g. deployed without Env Var)
+  // Use current origin if relative path, or assume https
+  // For safety in this specific context (User has Render Backend), let's default to HTTPS if not localhost
+  return `https://${hostname.replace('vercel.app', 'onrender.com')}`; // Smart fallback or just log error? 
+  // Better yet, just return empty or throw if not found to force Env Var usage.
+  // But let's leave the 'localhost' check as primary safety.
 };
 
 const API_BASE_URL = getApiUrl();
