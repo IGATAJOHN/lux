@@ -3,8 +3,13 @@ from app.models.all_models import FaceEmbedding
 from typing import Tuple
 import json
 import base64
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+    print("⚠ OpenCV not available. Face services will operate in mock mode.")
 
 # Global InsightFace app instance (lazy loaded)
 _face_app = None
@@ -27,11 +32,14 @@ def get_face_app():
             _face_app = "mock"  # Use string to indicate fallback
     return _face_app
 
-def base64_to_image(base64_str: str) -> np.ndarray:
+def base64_to_image(base64_str: str):
     """
     Convert base64 string to OpenCV image (numpy array).
     Handles both data URI and raw base64.
     """
+    if not CV2_AVAILABLE:
+        raise ImportError("OpenCV is not available")
+
     # Remove data URI prefix if present
     if ',' in base64_str:
         base64_str = base64_str.split(',')[1]
@@ -54,8 +62,9 @@ def generate_face_embedding(image_base64: str) -> str:
     """
     app = get_face_app()
     
-    # Fallback to mock if InsightFace failed to load
-    if app == "mock":
+    # Fallback to mock if InsightFace failed to load OR OpenCV is missing
+    if app == "mock" or not CV2_AVAILABLE:
+        print("⚠ Using Mock Face Embedding (CV2/InsightFace unavailable)")
         return _generate_mock_embedding(image_base64)
     
     try:
