@@ -14,11 +14,14 @@ app = FastAPI(title="AI Hospitality Platform")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[], # Clear explicit list to rely on regex
-    allow_origin_regex="https?://.*", # Allow HTTP and HTTPS from ANY domain
+    allow_origins=[
+        "https://lux-henna-two.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:8080"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/api_status")
