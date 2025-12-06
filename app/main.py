@@ -12,10 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="AI Hospitality Platform")
 
+
 origins = [
     "https://lux-henna-two.vercel.app",
     "http://localhost:3000",
-    "http://localhost:8080"
+    "http://127.0.0.1:3000",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
 ]
 
 app.add_middleware(
@@ -25,6 +28,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 @app.get("/api_status")
 def api_status():
     return {"status": "active", "version": "new_code_loaded"}
