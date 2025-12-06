@@ -3,9 +3,11 @@ from app.models.all_models import FaceEmbedding
 from typing import Tuple
 import json
 import base64
+import numpy as np  # NumPy is always required for embeddings
+
+# OpenCV is optional and may fail in headless environments
 try:
     import cv2
-    import numpy as np
     CV2_AVAILABLE = True
 except ImportError:
     CV2_AVAILABLE = False
