@@ -47,7 +47,14 @@ const ChatWidget = () => {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`http://localhost:8000/chat/message`, {
+            // Use config-aware API URL logic
+            const getApiUrl = () => {
+                if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+                if (window.location.hostname === 'localhost') return 'http://127.0.0.1:8000';
+                return 'https://lux-ahaw.onrender.com';
+            };
+
+            const response = await fetch(`${getApiUrl()}/chat/message`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
