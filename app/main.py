@@ -17,12 +17,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:8080",
         "http://127.0.0.1:8080",
-        "http://localhost:5173",  # Vite dev server
-        "http://127.0.0.1:5173",  # Vite dev server
-        "https://lux-henna-two.vercel.app", # Frontend Vercel
-        "https://lux-ahaw.onrender.com",    # Backend Render
-        "*",  # Allow all origins (Backup)
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173", 
+        "https://lux-henna-two.vercel.app",
+        "https://lux-ahaw.onrender.com",
     ],
+    allow_origin_regex="https://lux-.*\.vercel\.app", # Allow all Vercel preview URLs
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
