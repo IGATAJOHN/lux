@@ -9,3 +9,4 @@ requests
 pydantic-settings
 email-validator
 opencv-python-headless
+qrcode
