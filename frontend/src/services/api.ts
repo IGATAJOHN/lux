@@ -17,11 +17,8 @@ const getApiUrl = () => {
   }
 
   // 3. Fallback for unexpected environments (e.g. deployed without Env Var)
-  // Use current origin if relative path, or assume https
-  // For safety in this specific context (User has Render Backend), let's default to HTTPS if not localhost
-  return `https://${hostname.replace('vercel.app', 'onrender.com')}`; // Smart fallback or just log error? 
-  // Better yet, just return empty or throw if not found to force Env Var usage.
-  // But let's leave the 'localhost' check as primary safety.
+  // Hardcoding the known Render Backend URL to verify connectivity immediately
+  return 'https://lux-ahaw.onrender.com';
 };
 
 const API_BASE_URL = getApiUrl();
