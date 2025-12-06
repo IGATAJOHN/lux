@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "AI Hospitality Platform"
@@ -23,6 +24,10 @@ class Settings(BaseSettings):
     CLOUDINARY_CLOUD_NAME: str = "dnmibsz6a"  # Replace with your Cloudinary cloud name
     CLOUDINARY_API_KEY: str = "759243988352412"  # Replace with your Cloudinary API key
     CLOUDINARY_API_SECRET: str = "nVvC3_i98hvaHMgat7Ez9ySpm_s"  # Replace with your Cloudinary API secret
+    
+    # External Integrations
+    TAVILY_API_KEY: Optional[str] = None # Set via Env Var
+    GROQ_API_KEY: str = "" # Set via Env Var
 
     class Config:
         case_sensitive = True

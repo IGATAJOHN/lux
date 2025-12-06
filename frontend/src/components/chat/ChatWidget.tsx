@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Mic, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,15 +10,26 @@ const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [message, setMessage] = useState("");
-    const [messages, setMessages] = useState<{ text: string; isUser: boolean }[]>([
-        { text: "Hello! How can I help you today?", isUser: false }
+    const [isLoading, setIsLoading] = useState(false);
+    const sessionIdRef = useRef<string | null>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Initial message
+    const [messages, setMessages] = useState<{ text: string; isUser: boolean; image?: string }[]>([
+        { text: "Hello! Type 'Hi' to start the NIN Signup process.", isUser: false }
     ]);
     const navigate = useNavigate();
 
+    // Scroll to bottom effect
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages, isOpen]);
+
     const handleMicClick = () => {
-        // Navigate to voice chat interface
         navigate("/voice-chat");
-        setIsOpen(false); // Close the widget when moving to voice
+        setIsOpen(false);
     };
 
     const toggleOpen = () => {
@@ -25,21 +37,56 @@ const ChatWidget = () => {
         setIsMinimized(false);
     };
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!message.trim()) return;
 
-        // Add user message
-        const newMessages = [...messages, { text: message, isUser: true }];
-        setMessages(newMessages);
+        // User Message
+        const userMsg = message;
+        setMessages(prev => [...prev, { text: userMsg, isUser: true }]);
         setMessage("");
+        setIsLoading(true);
 
-        // Mock bot response
-        setTimeout(() => {
-            setMessages(prev => [...prev, {
-                text: "I'm just a demo bot, but I heard you!",
-                isUser: false
-            }]);
-        }, 1000);
+        try {
+            const response = await fetch(`http://localhost:8000/chat/message`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
+                },
+                body: JSON.stringify({
+                    message: userMsg,
+                    session_id: sessionIdRef.current
+                })
+            });
+
+            const data = await response.json();
+
+            // Save session ID
+            if (data.session_id) {
+                sessionIdRef.current = data.session_id;
+            }
+
+            // Bot Response
+            setMessages(prev => {
+                const newMsgs = [...prev, { text: data.response, isUser: false }];
+
+                // If QR code returned
+                if (data.action === "completed" && data.data?.qr_code) {
+                    newMsgs.push({
+                        text: "Scan this QR code or screenshot it for access.",
+                        isUser: false,
+                        image: data.data.qr_code
+                    });
+                }
+                return newMsgs;
+            });
+
+        } catch (error) {
+            console.error("Chat error:", error);
+            setMessages(prev => [...prev, { text: "Sorry, I'm having trouble connecting. Please try again.", isUser: false }]);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -61,7 +108,7 @@ const ChatWidget = () => {
                             </Button>
                         </div>
                     </CardHeader>
-                    <CardContent className="h-[400px] p-4 flex flex-col gap-4 overflow-y-auto bg-background/50 backdrop-blur-sm">
+                    <CardContent ref={scrollRef} className="h-[400px] p-4 flex flex-col gap-4 overflow-y-auto bg-background/50 backdrop-blur-sm">
                         {messages.map((msg, index) => (
                             <div key={index} className={`flex gap-2 max-w-[85%] ${msg.isUser ? 'ml-auto flex-row-reverse' : ''}`}>
                                 {!msg.isUser && (
@@ -69,14 +116,51 @@ const ChatWidget = () => {
                                         <MessageCircle className="h-4 w-4 text-primary" />
                                     </div>
                                 )}
-                                <div className={`rounded-2xl p-3 text-sm ${msg.isUser
+                                <div className="flex flex-col gap-2">
+                                    <div className={`rounded-2xl p-3 text-sm ${msg.isUser
                                         ? 'bg-primary text-primary-foreground rounded-tr-none'
                                         : 'bg-muted rounded-tl-none'
-                                    }`}>
-                                    {msg.text}
+                                        }`}>
+                                        {msg.text}
+                                    </div>
+                                    {msg.image && (
+                                        <div className="flex flex-col gap-2">
+                                            <img
+                                                src={`data:image/png;base64,${msg.image}`}
+                                                alt="QR Code"
+                                                className="w-48 h-48 rounded-lg border border-border bg-white p-2"
+                                            />
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const link = document.createElement('a');
+                                                    link.href = `data:image/png;base64,${msg.image}`;
+                                                    link.download = 'luxestay-access-qr.png';
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                    document.body.removeChild(link);
+                                                }}
+                                            >
+                                                Download QR Code
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
+                        {isLoading && (
+                            <div className="flex gap-2 max-w-[85%]">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                    <MessageCircle className="h-4 w-4 text-primary" />
+                                </div>
+                                <div className="bg-muted rounded-2xl p-3 text-sm rounded-tl-none flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                     <CardFooter className="p-3 bg-background border-t">
                         <div className="flex w-full items-center gap-2">
@@ -95,12 +179,13 @@ const ChatWidget = () => {
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                                disabled={isLoading}
                             />
                             <Button
                                 size="icon"
                                 className="shrink-0 rounded-full bg-primary shadow-sm hover:shadow-md transition-all"
                                 onClick={handleSend}
-                                disabled={!message.trim()}
+                                disabled={isLoading || !message.trim()}
                             >
                                 <Send className="h-4 w-4" />
                             </Button>

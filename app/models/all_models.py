@@ -22,7 +22,9 @@ class User(Base):
     access_level = Column(String, default="guest")
     qr_expiration = Column(DateTime, nullable=True)
     is_verified = Column(Boolean, default=False)
+    is_verified = Column(Boolean, default=False)
     fraud_score = Column(Float, default=0.0)
+    preferences = Column(Text, nullable=True) # Stores JSON string of user behavioral preferences
 
     bookings = relationship("Booking", back_populates="user")
     requests = relationship("ServiceRequest", back_populates="user")
@@ -64,6 +66,7 @@ class Booking(Base):
     check_out_date = Column(DateTime)
     status = Column(String, default="pending") # pending, confirmed, checked_in, checked_out, cancelled
     fraud_score = Column(Float, default=0.0)
+    preferences = Column(String, nullable=True) # Added for user preferences
     
     # Payment fields
     payment_status = Column(String, default="unpaid") # unpaid, paid, refunded

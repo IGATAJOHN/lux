@@ -63,6 +63,7 @@ const StaffManagement: React.FC = () => {
         email: '',
         phone: '',
         department: '',
+        password: '',
     });
 
     useEffect(() => {
@@ -105,6 +106,7 @@ const StaffManagement: React.FC = () => {
                 email: newStaff.email,
                 phone: newStaff.phone,
                 department: newStaff.department,
+                password: newStaff.password,
             });
 
             setStaff([...staff, response.data]);
@@ -115,7 +117,7 @@ const StaffManagement: React.FC = () => {
             });
 
             setIsDialogOpen(false);
-            setNewStaff({ name: '', email: '', phone: '', department: '' });
+            setNewStaff({ name: '', email: '', phone: '', department: '', password: '' });
         } catch (error) {
             toast({
                 title: 'Failed to Add Staff',
@@ -216,6 +218,17 @@ const StaffManagement: React.FC = () => {
                                             <SelectItem value="Security">Security</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Password (for Login)</Label>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={newStaff.password || ''}
+                                        onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                                        className="bg-input border-border"
+                                    />
                                 </div>
                                 <Button
                                     variant="gold"
@@ -326,7 +339,7 @@ const StaffManagement: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </Layout>
+        </Layout >
     );
 };
 

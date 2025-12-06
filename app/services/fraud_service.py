@@ -49,17 +49,16 @@ def get_risk_level(score: float) -> str:
 def validate_unique_id_format(unique_id: str) -> bool:
     """
     Validate unique_id format.
-    Expected format: Alphanumeric, 6-20 characters, may include hyphens
+    Expected format: Exactly 11 digits (NIN).
     """
     if not unique_id:
         return False
     
-    if len(unique_id) < 6 or len(unique_id) > 20:
+    # Check if exactly 11 digits
+    if len(unique_id) != 11:
         return False
-    
-    # Check if contains only alphanumeric and hyphens
-    allowed_chars = set(string.ascii_letters + string.digits + '-')
-    if not all(c in allowed_chars for c in unique_id):
+        
+    if not unique_id.isdigit():
         return False
     
     return True
@@ -67,19 +66,6 @@ def validate_unique_id_format(unique_id: str) -> bool:
 import string
 
 def generate_unique_id_suggestions(base_id: str) -> list[str]:
-    """
-    Generate alternative unique_id suggestions if the requested one is taken.
-    """
-    suggestions = []
-    
-    # Add numeric suffix
-    for i in range(1, 4):
-        suggestions.append(f"{base_id}{i}")
-    
-    # Add random suffix
-    random_suffix =  ''.join(random.choices(string.digits, k=3))
-    suggestions.append(f"{base_id}-{random_suffix}")
-    
-    return suggestions
+    return ["Please check your NIN and try again."]
 
 import random

@@ -28,6 +28,8 @@ class RegistrationResponse(BaseModel):
     qr_code_base64: str  # Base64 encoded QR code image
     access_level: str
     fraud_score: float
+    osint_summary: Optional[str] = None
+    anomaly_alert: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: str
@@ -191,6 +193,8 @@ class ServiceRequestResponse(BaseModel):
     status: str
     staff_id: Optional[int] = None
     staff_name: Optional[str] = None
+    guest_name: Optional[str] = None
+    room_number: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -198,10 +202,18 @@ class ServiceRequestResponse(BaseModel):
     
     @classmethod
     def model_validate(cls, obj):
-        if hasattr(obj, 'staff') and obj.staff:
-            staff_name = obj.staff.name
-        else:
-            staff_name = None
+        staff_name = obj.staff.name if hasattr(obj, 'staff') and obj.staff else None
+        
+        guest_name = None
+        room_number = None
+        if hasattr(obj, 'user') and obj.user:
+            guest_name = obj.user.name
+            # Try to find active booking/room
+            if hasattr(obj.user, 'bookings'):
+                for b in obj.user.bookings:
+                    if b.status in ['checked_in', 'confirmed'] and b.room:
+                        room_number = b.room.room_number
+                        break
             
         return cls(
             id=obj.id,
@@ -211,9 +223,10 @@ class ServiceRequestResponse(BaseModel):
             status=obj.status,
             staff_id=obj.staff_id,
             staff_name=staff_name,
+            guest_name=guest_name,
+            room_number=room_number,
             created_at=obj.created_at
         )
-        return ServiceRequestResponse(**data)
 
 class RequestStatusUpdate(BaseModel):
     request_id: int

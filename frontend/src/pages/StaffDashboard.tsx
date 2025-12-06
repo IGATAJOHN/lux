@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { playNotificationSound } from '@/utils/sound';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,6 +13,8 @@ interface ServiceRequest {
     description: string;
     status: string;
     created_at: string;
+    guest_name?: string;
+    room_number?: string;
 }
 
 interface Notification {
@@ -77,9 +80,48 @@ const StaffDashboard: React.FC = () => {
         // In real web app, call PUT /requests/{id}/status
     };
 
+    const prevTasksRef = useRef<Set<number>>(new Set());
+
     useEffect(() => {
-        if (token) fetchDashboard();
+        if (!token) return;
+
+        // Initial fetch
+        fetchDashboard();
+
+        // Polling every 15 seconds
+        const interval = setInterval(() => {
+            fetchDashboard();
+        }, 15000);
+
+        return () => clearInterval(interval);
     }, [token]);
+
+    // Check for new tasks to play sound
+    useEffect(() => {
+        if (!data) return;
+
+        const currentTaskIds = new Set(data.active_tasks.map(t => t.id));
+        const prevTaskIds = prevTasksRef.current;
+
+        // Find new tasks that weren't in the previous set
+        const hasNewTasks = [...currentTaskIds].some(id => !prevTaskIds.has(id));
+
+        if (hasNewTasks && prevTaskIds.size > 0) { // Don't beep on first load
+            // Ensure it's not just a reload of same tasks, but actually NEW ones
+            // For simplicity, if we have checks, we assume it's valid.
+            // Actually, if prevTaskIds.size > 0 ensures we don't beep on F5 refresh immediately
+            // unless we persisted state. But useRef resets on F5. 
+            // So this only beeps for tasks arriving while the page is OPEN.
+            playNotificationSound();
+            toast.info("New task assigned!");
+        }
+
+        // Update ref
+        if (data.active_tasks.length > 0) {
+            prevTasksRef.current = currentTaskIds;
+        }
+
+    }, [data]);
 
     if (loading) return <div className="p-10 text-center text-primary">Loading Staff Dashboard...</div>;
     if (!data) return <div className="p-10 text-center text-red-500">Access Restricted</div>;
@@ -99,9 +141,14 @@ const StaffDashboard: React.FC = () => {
                             <Briefcase className="h-4 w-4" /> {data.department?.toUpperCase() || 'Staff'}
                         </p>
                     </div>
-                    <Button variant="outline" onClick={fetchDashboard}>
-                        Refresh Data
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => playNotificationSound()}>
+                            Test Sound
+                        </Button>
+                        <Button variant="outline" onClick={fetchDashboard}>
+                            Refresh Data
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -131,6 +178,21 @@ const StaffDashboard: React.FC = () => {
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
+                                        <div className="flex flex-wrap gap-4 mb-4 text-sm text-muted-foreground bg-secondary/20 p-3 rounded-md">
+                                            {task.guest_name && (
+                                                <div className="flex items-center gap-1">
+                                                    <User className="h-4 w-4 text-primary" />
+                                                    <span className="font-medium text-foreground">{task.guest_name}</span>
+                                                </div>
+                                            )}
+                                            {task.room_number && (
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-primary font-bold">Room:</span>
+                                                    <span className="font-mono text-foreground">{task.room_number}</span>
+                                                </div>
+                                            )}
+                                            {!task.guest_name && !task.room_number && <span>Guest details unavailable</span>}
+                                        </div>
                                         <p className="text-foreground mb-4">{task.description}</p>
                                         <Button
                                             variant="gold"

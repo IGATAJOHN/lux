@@ -35,8 +35,8 @@ const Navbar: React.FC = () => {
 
   const navLinks = [
     { path: '/', label: 'Home' },
-    { path: '/rooms', label: 'Rooms' },
-    ...(user?.role !== 'admin' ? [{ path: '/booking', label: 'Book Now' }] : []),
+    ...(user?.role !== 'staff' ? [{ path: '/rooms', label: 'Rooms' }] : []),
+    ...(user?.role !== 'admin' && user?.role !== 'staff' ? [{ path: '/booking', label: 'Book Now' }] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -82,13 +82,13 @@ const Navbar: React.FC = () => {
                 <DropdownMenuContent align="end" className="w-48 bg-card border-border">
                   {user?.role !== 'admin' && (
                     <DropdownMenuItem asChild>
-                      <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer">
+                      <Link to={user?.role === 'staff' ? "/staff/dashboard" : "/dashboard"} className="flex items-center gap-2 cursor-pointer">
                         <LayoutDashboard className="h-4 w-4" />
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  {user?.role !== 'admin' && (
+                  {user?.role !== 'admin' && user?.role !== 'staff' && (
                     <DropdownMenuItem asChild>
                       <Link to="/my-bookings" className="flex items-center gap-2 cursor-pointer">
                         <Calendar className="h-4 w-4" />

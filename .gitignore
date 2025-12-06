@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.venv
+env/
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+build/
+.DS_Store
+
+# Logs
+*.log
+
+# Editor
+.vscode/
+.idea/
+
+# Backend specific
+hotel.db
+hotel_v2.db
+nin_db.db
+
+# Frontend (already has its own, but good to be safe)
+frontend/node_modules
+frontend/dist

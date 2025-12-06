@@ -40,7 +40,7 @@ def assign_staff_to_request(request_id: int, db: Session):
         db.query(Staff)
         .outerjoin(active_requests_subquery, Staff.id == active_requests_subquery.c.staff_id)
         .filter(
-            Staff.department == target_department,
+            func.lower(Staff.department) == target_department.lower(),
             Staff.status == "active"
         )
         .order_by(func.coalesce(active_requests_subquery.c.active_count, 0).asc()) # Least busy first

@@ -1,25 +1,33 @@
-from app.database import engine
-from sqlalchemy import text
+import sqlite3
+import os
+
+DB_FILE = "hotel_v2.db" # Default name, verify if different
 
 def migrate():
-    with engine.connect() as connection:
-        try:
-            # Add staff_id column
-            # Note: SQLite doesn't support adding foreign key constraints easily via ALTER TABLE, 
-            # but adding the column is sufficient for now.
-            connection.execute(text("ALTER TABLE service_requests ADD COLUMN staff_id INTEGER"))
-            print("Added staff_id column.")
-        except Exception as e:
-            print(f"Could not add staff_id (might already exist): {e}")
+    if not os.path.exists(DB_FILE):
+        print(f"Database {DB_FILE} not found in current dir.")
+        return
 
-        try:
-            # Add assigned_at column
-            connection.execute(text("ALTER TABLE service_requests ADD COLUMN assigned_at DATETIME"))
-            print("Added assigned_at column.")
-        except Exception as e:
-            print(f"Could not add assigned_at (might already exist): {e}")
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    try:
+        # Check if column exists
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [info[1] for info in cursor.fetchall()]
+        
+        if "preferences" not in columns:
+            print("Adding 'preferences' column to 'users' table...")
+            cursor.execute("ALTER TABLE users ADD COLUMN preferences TEXT")
+            conn.commit()
+            print("Migration successful.")
+        else:
+            print("Column 'preferences' already exists.")
             
-        connection.commit()
+    except Exception as e:
+        print(f"Migration error: {e}")
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     migrate()

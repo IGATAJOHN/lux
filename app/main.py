@@ -56,7 +56,12 @@ app.include_router(staff.router, prefix="/staff", tags=["Staff"])
 app.include_router(ai.router, prefix="/ai", tags=["AI Engine"])
 app.include_router(notifications.router, prefix="/notify", tags=["Notifications"])
 app.include_router(access.router, prefix="/access", tags=["Access Credentials"])
+app.include_router(access.router, prefix="/access", tags=["Access Credentials"])
 app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+
+# Dynamic import to avoid circular dependency issues if any
+from app.routers import chat
+app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 
 @app.get("/")
 def root():

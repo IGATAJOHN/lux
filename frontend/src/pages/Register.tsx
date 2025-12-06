@@ -45,10 +45,10 @@ const Register: React.FC = () => {
   };
 
   const verifyUniqueId = async () => {
-    if (!formData.unique_id || formData.unique_id.length < 6) {
+    if (!formData.unique_id || formData.unique_id.length !== 11 || !/^\d+$/.test(formData.unique_id)) {
       toast({
         title: 'Invalid ID',
-        description: 'Unique ID must be at least 6 characters',
+        description: 'NIN must be exactly 11 digits',
         variant: 'destructive',
       });
       return;
@@ -62,7 +62,7 @@ const Register: React.FC = () => {
       if (!data.is_valid) {
         toast({
           title: 'Invalid Format',
-          description: 'Unique ID must be 6-20 alphanumeric characters',
+          description: 'NIN must be 11 numeric digits',
           variant: 'destructive',
         });
         setUniqueIdValid(false);
@@ -139,7 +139,7 @@ const Register: React.FC = () => {
     if (!uniqueIdValid) {
       toast({
         title: 'Unique ID Required',
-        description: 'Please verify your unique ID first',
+        description: 'Please verify your NIN first',
         variant: 'destructive',
       });
       return false;
@@ -374,13 +374,14 @@ const Register: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="unique_id">Unique ID</Label>
+                <Label htmlFor="unique_id">NIN (National Identity Number)</Label>
                 <div className="flex gap-2">
                   <Input
                     id="unique_id"
                     name="unique_id"
                     type="text"
-                    placeholder="MYID001"
+                    maxLength={11}
+                    placeholder="12345678901"
                     value={formData.unique_id}
                     onChange={handleChange}
                     className={uniqueIdValid === true ? 'border-green-500' : uniqueIdValid === false ? 'border-red-500' : ''}
@@ -396,7 +397,7 @@ const Register: React.FC = () => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  6-20 alphanumeric characters (hyphens allowed)
+                  Must be exactly 11 digits
                 </p>
               </div>
 

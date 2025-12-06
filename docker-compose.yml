@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: luxestay_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./hotel_v2.db:/app/hotel_v2.db # Persist SQLite DB
+    environment:
+      - DATABASE_URL=sqlite:///./hotel_v2.db
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    networks:
+      - luxestay-network
+
+  frontend:
+    build: ./frontend
+    container_name: luxestay_frontend
+    ports:
+      - "8080:80" # Map host 8080 to container 80 (Nginx)
+    depends_on:
+      - backend
+    networks:
+      - luxestay-network
+
+networks:
+  luxestay-network:
+    driver: bridge

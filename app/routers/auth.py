@@ -10,7 +10,7 @@ from app.schemas.all_schemas import (
     FaceEnrollRequest, FaceMatchRequest
 )
 from app.utils.security import verify_password, get_password_hash, create_access_token
-from app.services import face_service, access_service, fraud_service, cloudinary_service
+from app.services import face_service, access_service, fraud_service, cloudinary_service, ai_service
 from jose import JWTError, jwt
 from app.core.config import settings
 from datetime import datetime, timedelta
@@ -36,6 +36,21 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+
+def get_current_user_optional(token: str = Depends(oauth2_scheme_optional), db: Session = Depends(get_db)):
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            return None
+    except JWTError:
+        return None
+    
+    return db.query(User).filter(User.email == email).first()
+
 @router.post("/register", response_model=RegistrationResponse)
 def register(user: UserRegisterEnhanced, db: Session = Depends(get_db)):
     """
@@ -55,7 +70,7 @@ def register(user: UserRegisterEnhanced, db: Session = Depends(get_db)):
     if not fraud_service.validate_unique_id_format(user.unique_id):
         raise HTTPException(
             status_code=400,
-            detail="Invalid unique_id format. Must be 6-20 alphanumeric characters (hyphens allowed)"
+            detail="Invalid Unique ID format. Must be exactly 11 digits (NIN)."
         )
     
     # Step 2: Check for duplicate email
@@ -143,15 +158,30 @@ def register(user: UserRegisterEnhanced, db: Session = Depends(get_db)):
     
     # Step 9: Generate access token
     access_token = create_access_token(data={"sub": new_user.email})
+
+    # Step 10: Run Post-Registration AI Checks
+    # Anomaly Check
+    anomaly_result = ai_service.detect_anomaly()
+    anomaly_alert = None
+    if anomaly_result['anomaly']:
+        anomaly_alert = f"Anomaly Detected: {anomaly_result['explanation'][0]}"
+        print(f"⚠ {anomaly_alert}")
     
-    # Step 10: Return response with credentials
+    # OSINT Check
+    osint_summary = ai_service.perform_osint_check(new_user.email, new_user.phone)
+    if osint_summary:
+        print(f"🌐 {osint_summary}")
+    
+    # Step 11: Return response with credentials
     return RegistrationResponse(
         user_id=new_user.id,
         token=access_token,
         pin=pin,  # Shown only once
         qr_code_base64=qr_code_base64,
         access_level=new_user.access_level,
-        fraud_score=fraud_score
+        fraud_score=fraud_score,
+        osint_summary=osint_summary,
+        anomaly_alert=anomaly_alert
     )
 
 @router.post("/login", response_model=Token)
