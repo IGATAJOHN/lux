@@ -8,4 +8,4 @@ python-multipart
 requests
 pydantic-settings
 email-validator
-opencv-python
+opencv-python-headless
