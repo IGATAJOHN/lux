@@ -54,62 +54,65 @@ def get_current_user_optional(token: str = Depends(oauth2_scheme_optional), db: 
 @router.post("/register", response_model=RegistrationResponse)
 def register(user: UserRegisterEnhanced, db: Session = Depends(get_db)):
     """
-    Enhanced registration with biometric enrollment, fraud detection, and auto-generation of access credentials.
-    
-    Process:
-    1. Validate unique_id format
-    2. Check for duplicates (email, unique_id)
-    3. Generate face embedding from selfie
-    4. Check for duplicate face
-    5. Calculate fraud score
-    6. Auto-generate PIN and QR code
-    7. Create user with all metadata
-    8. Return credentials (PIN shown only once)
+    SAFE DEMO VERSION (NO OpenCV, NO Cloudinary, NO AI APIs)
+    -------------------------------------------------------
+    Features:
+    - Unique ID validation
+    - Duplicate checks
+    - Synthetic face embedding (no CV2)
+    - Mock anomaly detection
+    - Mock OSINT check
+    - Auto PIN + QR code generation
+    - Full CORS compatibility
     """
-    # Step 1: Validate unique_id format
+
+    # 1. Validate unique ID (mock NIN = 11 digits)
     if not fraud_service.validate_unique_id_format(user.unique_id):
         raise HTTPException(
             status_code=400,
-            detail="Invalid Unique ID format. Must be exactly 11 digits (NIN)."
+            detail="Invalid Unique ID format. Must be 11 digits."
         )
-    
-    # Step 2: Check for duplicate email
-    existing_email = db.query(User).filter(User.email == user.email).first()
-    if existing_email:
+
+    # 2. Duplicate email
+    if db.query(User).filter(User.email == user.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Step 3: Check for duplicate unique_id
-    unique_id_duplicate = fraud_service.check_duplicate_unique_id(user.unique_id, db)
-    if unique_id_duplicate:
-        suggestions = fraud_service.generate_unique_id_suggestions(user.unique_id)
+
+    # 3. Duplicate Unique ID
+    if fraud_service.check_duplicate_unique_id(user.unique_id, db):
         raise HTTPException(
             status_code=400,
-            detail={
-                "message": "Unique ID already exists",
-                "suggestions": suggestions
-            }
+            detail="Unique ID already exists"
         )
-    
-    # Step 4: Generate face embedding (TEMPORARILY DISABLED FOR DEMO)
-    # Using mock embedding to bypass OpenCV issues
-    face_embedding = face_service._generate_mock_embedding(user.selfie_image)
-    
-    # Step 5: Skip duplicate face check (TEMPORARILY DISABLED)
-    face_duplicate = False
-    matched_user_id = None
-    
-    # Step 6: Set minimal fraud score (TEMPORARILY DISABLED)
-    fraud_score = 0.0  # Always low risk for demo
-    
-    # Step 7: Generate access credentials
+
+    # 4. Synthetic face embedding (no cv2)
+    face_embedding = f"synthetic-embedding-{hash(user.selfie_image) % 999999}"
+
+    # 5. Duplicate face check (mock)
+    # If any user already has the same synthetic hash → duplicate
+    existing_face = (
+        db.query(FaceEmbedding)
+        .filter(FaceEmbedding.embedding == face_embedding)
+        .first()
+    )
+    face_duplicate = existing_face is not None
+
+    # 6. Fraud score (mock)
+    fraud_score = fraud_service.calculate_fraud_score(
+        unique_id_duplicate=False,
+        face_duplicate=face_duplicate,
+        email_duplicate=False
+    )
+
+    # 7. Generate PIN
     pin, pin_hash = access_service.generate_unique_pin(db)
-    
+
+    # 8. QR code expiration
     expiration = datetime.utcnow() + timedelta(days=settings.QR_EXPIRATION_DAYS)
-    
-    # Step 8: Skip Cloudinary upload (use placeholder)
-    selfie_url = "placeholder_selfie_url"
-    
-    # Step 9: Create user
+
+    # 9. NO cloudinary – store base64 directly
+    selfie_url = user.selfie_image
+
+    # 10. Create user record
     hashed_password = get_password_hash(user.password)
     new_user = User(
         name=user.name,
@@ -121,13 +124,13 @@ def register(user: UserRegisterEnhanced, db: Session = Depends(get_db)):
         pin_hash=pin_hash,
         access_level="guest",
         fraud_score=fraud_score,
-        is_verified=True,  # Auto-verify for demo
+        is_verified=fraud_score < 30.0,
         role="guest"
     )
     db.add(new_user)
-    db.flush()  # Get user ID without committing
-    
-    # Generate QR code now that we have user ID
+    db.flush()  # gets ID
+
+    # 11. Generate QR code
     qr_code_base64 = access_service.generate_qr_code(
         user_id=new_user.id,
         unique_id=new_user.unique_id,
@@ -137,25 +140,33 @@ def register(user: UserRegisterEnhanced, db: Session = Depends(get_db)):
     )
     new_user.qr_code_data = qr_code_base64
     new_user.qr_expiration = expiration
-    
-    # Save face embedding
-    face_service.save_face_embedding(new_user.id, face_embedding, db)
-    
+
+    # Save face embedding (synthetic)
+    synthetic_face_record = FaceEmbedding(
+        user_id=new_user.id,
+        embedding=face_embedding
+    )
+    db.add(synthetic_face_record)
+
     db.commit()
     db.refresh(new_user)
-    
-    # Step 9: Generate access token
-    access_token = create_access_token(data={"sub": new_user.email})
 
-    # Step 10: Skip Post-Registration AI Checks (TEMPORARILY DISABLED FOR DEMO)
+    # 12. Create JWT
+    token = create_access_token(data={"sub": new_user.email})
+
+    # 13. Mock anomaly detection (no AI or external APIs)
     anomaly_alert = None
-    osint_summary = None
-    
-    # Step 11: Return response with credentials
+    if fraud_score > 70:
+        anomaly_alert = "High-risk behavior detected (mock check)."
+
+    # 14. Mock OSINT check
+    osint_summary = f"OSINT mock: {new_user.name} appears low-risk."
+
+    # 15. Return response
     return RegistrationResponse(
         user_id=new_user.id,
-        token=access_token,
-        pin=pin,  # Shown only once
+        token=token,
+        pin=pin,
         qr_code_base64=qr_code_base64,
         access_level=new_user.access_level,
         fraud_score=fraud_score,
